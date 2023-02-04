@@ -5,10 +5,8 @@ library(tidyverse)
 library(tidyr)
 library(ggrepel)
 library(caret)
-library(caretEnsemble)
 library(xgboost)
 library(glmnet)
-library(doParallel)
 
 #SETTING UP THE WORKING DIRECTORY
 setwd("C:/Users/Admin/Documents/flight train.csv")
@@ -204,7 +202,7 @@ lm<-lm(Price~.,ctrain)
 summary(lm)
 
 #RANDOM FOREST
-model_rf <- train(Price ~ ., data = ctrain, method = "rf", trControl = trainControl(method = "cv", number = 5,allowParallel=TRUE), verbose = TRUE)
+model_rf <- train(Price ~ ., data = ctrain, method = "rf", trControl = trainControl(method = "cv", number = 5), verbose = TRUE)
 pred <- predict(model_rf, newdata = ctest)
 rmse_value <-sqrt(mean((pred - ctest$Price)^2))
 r_squared_value <- 1 - sum((ctest$Price - pred)^2)/sum((ctest$Price - mean(ctest$Price))^2)
@@ -212,7 +210,7 @@ print(paste("RMSE:", rmse_value))
 print(paste("R-squared:", r_squared_value))
 
 # XGBOOST
-fitControl <- trainControl(method = "cv", number = 5,allowParallel=TRUE)
+fitControl <- trainControl(method = "cv", number = 5)
 grid <- expand.grid(nrounds = 100, max_depth = c(2, 3), eta = 0.1, gamma = 0, colsample_bytree = 1, min_child_weight = 1, subsample = 1)
 fitXGBoost <- train(Price ~ ., data = ctrain, method = "xgbTree", trControl = fitControl, tuneGrid = grid, verbose = FALSE)
 predXGBoost <- predict(fitXGBoost, newdata = ctest)
@@ -222,21 +220,12 @@ print(paste("RMSE:", rmse_value))
 print(paste("R-squared:", r_squared_value))
 
 #RIDGE REGRESSION
-fitControl <- trainControl(method = "cv", number = 5,allowParallel=TRUE)
+fitControl <- trainControl(method = "cv", number = 5)
 grid <- expand.grid(alpha = 0.5, lambda = seq(0.001, 1, 0.01))
 fitRidge <- train(Price ~ ., data = ctrain, method = "glmnet", trControl = fitControl, tuneGrid = grid, verbose = FALSE)
 predRidge <- predict(fitRidge, newdata = ctest)
 rmse_value <-sqrt(mean((predRidge - ctest$Price)^2))
 r_squared_value <- 1 - sum((ctest$Price - predRidge)^2)/sum((ctest$Price - mean(ctest$Price))^2)
-print(paste("RMSE:", rmse_value))
-print(paste("R-squared:", r_squared_value))
-
-# ENSEMBLE
-models <- c( "rf", "glmnet", "xgbTree")
-fitEnsemble <- caretList(Price ~ ., data = ctrain, trControl = trainControl(method = "cv", number = 5,allowParallel=TRUE), methodList = models)
-predEnsemble <- predict(fitEnsemble, newdata = ctest)
-rmse_value <-sqrt(mean((predEnsemble - ctest$Price)^2))
-r_squared_value <- 1 - sum((ctest$Price - predEnsemble)^2)/sum((ctest$Price - mean(ctest$Price))^2)
 print(paste("RMSE:", rmse_value))
 print(paste("R-squared:", r_squared_value))
 
